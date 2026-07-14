@@ -1,12 +1,15 @@
 const express = require("express");
+
 const router = express.Router();
+
+const authMiddleware = require("../middleware/authMiddleware");
 
 const {
   addEmployee,
   getEmployees,
-  searchEmployee,
   updateEmployee,
   deleteEmployee,
+  searchEmployee,
 } = require("../controllers/employeeController");
 
 // Test Route
@@ -15,18 +18,18 @@ router.get("/test", (req, res) => {
 });
 
 // Search Employee
-router.get("/search", searchEmployee);
+router.get("/search", authMiddleware, searchEmployee);
 
 // Get All Employees
-router.get("/", getEmployees);
+router.get("/", authMiddleware, getEmployees);
 
 // Add Employee
-router.post("/add", addEmployee);
+router.post("/add", authMiddleware, addEmployee);
 
 // Update Employee
-router.put("/:id", updateEmployee);
+router.put("/:id", authMiddleware, updateEmployee);
 
 // Delete Employee
-router.delete("/:id", deleteEmployee);
+router.delete("/:id", authMiddleware, deleteEmployee);
 
 module.exports = router;
