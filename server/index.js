@@ -7,6 +7,7 @@ const connectDB = require("./config/db");
 
 const employeeRoutes = require("./routes/employeeRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 // Load Environment Variables
 dotenv.config();
@@ -32,6 +33,9 @@ app.use("/api/employees", employeeRoutes);
 
 // Admin Routes
 app.use("/api/admin", adminRoutes);
+
+// Dashboard Routes
+app.use("/api/dashboard", dashboardRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5001;
