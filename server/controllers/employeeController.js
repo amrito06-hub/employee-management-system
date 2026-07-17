@@ -36,6 +36,31 @@ const getEmployees = async (req, res) => {
   }
 };
 
+// Get Single Employee By ID
+const getEmployeeById = async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee Not Found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      employee,
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 // Search Employee
 const searchEmployee = async (req, res) => {
   try {
@@ -96,7 +121,9 @@ const updateEmployee = async (req, res) => {
 // Delete Employee
 const deleteEmployee = async (req, res) => {
   try {
-    const employee = await Employee.findByIdAndDelete(req.params.id);
+    const employee = await Employee.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!employee) {
       return res.status(404).json({
@@ -120,6 +147,7 @@ const deleteEmployee = async (req, res) => {
 module.exports = {
   addEmployee,
   getEmployees,
+  getEmployeeById,
   searchEmployee,
   updateEmployee,
   deleteEmployee,

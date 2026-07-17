@@ -7,6 +7,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
   addEmployee,
   getEmployees,
+  getEmployeeById,
   updateEmployee,
   deleteEmployee,
   searchEmployee,
@@ -18,18 +19,45 @@ router.get("/test", (req, res) => {
 });
 
 // Search Employee
-router.get("/search", authMiddleware, searchEmployee);
+router.get(
+  "/search",
+  authMiddleware,
+  searchEmployee
+);
 
 // Get All Employees
-router.get("/", authMiddleware, getEmployees);
+router.get(
+  "/",
+  authMiddleware,
+  getEmployees
+);
 
 // Add Employee
-router.post("/add", authMiddleware, addEmployee);
+router.post(
+  "/add",
+  authMiddleware,
+  addEmployee
+);
+
+// Get Single Employee
+router.get(
+  "/:id",
+  authMiddleware,
+  getEmployeeById
+);
 
 // Update Employee
-router.put("/:id", authMiddleware, updateEmployee);
+router.put(
+  "/:id",
+  authMiddleware,
+  updateEmployee
+);
 
 // Delete Employee
-router.delete("/:id", authMiddleware, deleteEmployee);
+router.delete(
+  "/:id",
+  authMiddleware,
+  deleteEmployee
+);
 
 module.exports = router;
