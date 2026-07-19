@@ -1,78 +1,161 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import API from "../services/api";
 
-function Payroll() {
-  const [payrolls, setPayrolls] = useState([]);
-  const [employees, setEmployees] = useState([]);
+function Employees() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [payingId, setPayingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingId, setEditingId] = useState(null);
 
   const [formData, setFormData] = useState({
-    employee: "",
-    month: "",
-    basicSalary: "",
-    allowance: "",
-    bonus: "",
-    deduction: "",
+    employeeId: "",
+    fullName: "",
+    email: "",
+    phone: "",
+    department: "",
+    designation: "",
+    salary: "",
+    joiningDate: "",
+    status: "Active",
+    profileImage: "",
   });
 
-  // Get Payrolls
-  const fetchPayrolls = async () => {
+  // =========================
+  // FETCH EMPLOYEES
+  // =========================
+  const fetchEmployees = async () => {
     try {
-      const response = await API.get("/payroll");
+      setLoading(true);
 
-      setPayrolls(response.data.payrolls || []);
+      const response = await API.get("/employees");
+
+      setEmployees(response.data.employees || []);
+
+      return response.data.employees || [];
     } catch (error) {
-      console.error("Payroll Load Error:", error);
+      console.error("Employees Load Error:", error);
+
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          "Employees Data Load Failed"
+      );
+
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
-  // Get Employees
-  const fetchEmployees = async () => {
-    try {
-      const token = localStorage.getItem("token");
+  // =========================
+  // FORMAT DATE FOR INPUT
+  // =========================
+  const formatDateForInput = (dateString) => {
+    if (!dateString) return "";
+    return dateString.slice(0, 10);
+  };
 
-      const response = await API.get("/employees", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  // =========================
+  // START EDIT
+  // =========================
+  const startEdit = (employee) => {
+    setEditingId(employee._id);
+
+    setFormData({
+      employeeId: employee.employeeId || "",
+      fullName: employee.fullName || "",
+      email: employee.email || "",
+      phone: employee.phone || "",
+      department: employee.department || "",
+      designation: employee.designation || "",
+      salary: employee.salary || "",
+      joiningDate: formatDateForInput(
+        employee.joiningDate
+      ),
+      status: employee.status || "Active",
+      profileImage: employee.profileImage || "",
+    });
+
+    setShowForm(true);
+  };
+
+  // =========================
+  // LOAD DATA (+ AUTO-OPEN EDIT IF REDIRECTED)
+  // =========================
+  useEffect(() => {
+    const loadAndCheckEdit = async () => {
+      const employeesList = await fetchEmployees();
+
+      const editEmployeeId =
+        location.state?.editEmployeeId;
+
+      if (editEmployeeId) {
+        const targetEmployee = employeesList.find(
+          (employee) => employee._id === editEmployeeId
+        );
+
+        if (targetEmployee) {
+          startEdit(targetEmployee);
+        }
+
+        navigate(location.pathname, {
+          replace: true,
+          state: {},
+        });
+      }
+    };
+
+    loadAndCheckEdit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // =========================
+  // SEARCH EMPLOYEE
+  // =========================
+  const handleSearch = async (e) => {
+    e.preventDefault();
+
+    try {
+      setLoading(true);
+
+      if (!searchTerm.trim()) {
+        fetchEmployees();
+        return;
+      }
+
+      const response = await API.get(
+        `/employees/search?name=${searchTerm}`
+      );
 
       setEmployees(response.data.employees || []);
     } catch (error) {
-      console.error("Employees Load Error:", error);
+      console.error("Employee Search Error:", error);
+
+      alert(
+        error.response?.data?.message ||
+          error.message ||
+          "Employee Search Failed"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Load Data
-  useEffect(() => {
-    fetchPayrolls();
+  const clearSearch = () => {
+    setSearchTerm("");
     fetchEmployees();
-  }, []);
-
-  // Employee Select
-  const handleEmployeeChange = (e) => {
-    const employeeId = e.target.value;
-
-    const selectedEmployee = employees.find(
-      (employee) => employee._id === employeeId
-    );
-
-    setFormData((previousData) => ({
-      ...previousData,
-      employee: employeeId,
-      basicSalary: selectedEmployee
-        ? selectedEmployee.salary
-        : "",
-    }));
   };
 
-  // Input Change
+  // =========================
+  // INPUT CHANGE
+  // =========================
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -82,138 +165,168 @@ function Payroll() {
     }));
   };
 
-  // Net Salary
-  const netSalary =
-    Number(formData.basicSalary || 0) +
-    Number(formData.allowance || 0) +
-    Number(formData.bonus || 0) -
-    Number(formData.deduction || 0);
+  // =========================
+  // RESET FORM
+  // =========================
+  const resetForm = () => {
+    setFormData({
+      employeeId: "",
+      fullName: "",
+      email: "",
+      phone: "",
+      department: "",
+      designation: "",
+      salary: "",
+      joiningDate: "",
+      status: "Active",
+      profileImage: "",
+    });
 
-  // Generate Payroll
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  // =========================
+  // ADD / UPDATE EMPLOYEE
+  // =========================
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       setSaving(true);
 
-      const response = await API.post("/payroll", {
-        employee: formData.employee,
-        month: formData.month,
-        basicSalary: Number(formData.basicSalary),
-        allowance: Number(formData.allowance || 0),
-        bonus: Number(formData.bonus || 0),
-        deduction: Number(formData.deduction || 0),
-      });
+      const employeeData = {
+        employeeId: formData.employeeId,
+        fullName: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        department: formData.department,
+        designation: formData.designation,
+        salary: Number(formData.salary),
+        status: formData.status,
+      };
+
+      if (formData.joiningDate) {
+        employeeData.joiningDate = formData.joiningDate;
+      }
+
+      if (formData.profileImage) {
+        employeeData.profileImage = formData.profileImage;
+      }
+
+      let response;
+
+      if (editingId) {
+        response = await API.put(
+          `/employees/${editingId}`,
+          employeeData
+        );
+      } else {
+        response = await API.post(
+          "/employees/add",
+          employeeData
+        );
+      }
 
       alert(
         response.data.message ||
-          "Payroll Generated Successfully"
+          (editingId
+            ? "Employee Updated Successfully"
+            : "Employee Added Successfully")
       );
 
-      setFormData({
-        employee: "",
-        month: "",
-        basicSalary: "",
-        allowance: "",
-        bonus: "",
-        deduction: "",
-      });
+      resetForm();
 
-      setShowForm(false);
-
-      fetchPayrolls();
+      fetchEmployees();
     } catch (error) {
-      console.error("Payroll Generate Error:", error);
+      console.error("Save Employee Error:", error);
 
       alert(
         error.response?.data?.message ||
-          "Payroll Generate Failed"
+          error.message ||
+          "Save Employee Failed"
       );
     } finally {
       setSaving(false);
     }
   };
 
-  // Mark Payroll as Paid
-  const handleMarkAsPaid = async (payrollId) => {
-    try {
-      setPayingId(payrollId);
+  // =========================
+  // DELETE EMPLOYEE
+  // =========================
+  const handleDelete = async (employeeId, employeeName) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${employeeName}?`
+    );
 
-      const response = await API.put(
-        `/payroll/${payrollId}/pay`
+    if (!confirmDelete) {
+      return;
+    }
+
+    try {
+      setDeletingId(employeeId);
+
+      const response = await API.delete(
+        `/employees/${employeeId}`
       );
 
       alert(
         response.data.message ||
-          "Payroll marked as Paid"
+          "Employee Deleted Successfully"
       );
 
-      fetchPayrolls();
+      fetchEmployees();
     } catch (error) {
-      console.error("Mark Paid Error:", error);
+      console.error("Delete Employee Error:", error);
 
       alert(
         error.response?.data?.message ||
-          "Failed to mark payroll as Paid"
+          error.message ||
+          "Delete Employee Failed"
       );
     } finally {
-      setPayingId(null);
+      setDeletingId(null);
     }
   };
-
-  // Statistics
-  const totalSalary = payrolls.reduce(
-    (total, payroll) =>
-      total + Number(payroll.netSalary || 0),
-    0
-  );
-
-  const paidPayments = payrolls.filter(
-    (payroll) =>
-      payroll.paymentStatus === "Paid"
-  ).length;
-
-  const pendingPayments = payrolls.filter(
-    (payroll) =>
-      payroll.paymentStatus === "Pending"
-  ).length;
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 text-gray-900 dark:text-white">
 
-      {/* Header */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
 
         <div>
           <h1 className="text-3xl font-bold">
-            Payroll & Salary
+            Employees
           </h1>
 
           <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Manage employee salaries and payroll
+            Manage your employee records
           </p>
         </div>
 
         <button
-          onClick={() =>
-            setShowForm(!showForm)
-          }
+          onClick={() => {
+            if (showForm) {
+              resetForm();
+            } else {
+              setShowForm(true);
+            }
+          }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold"
         >
-          {showForm
-            ? "✖ Close Form"
-            : "+ Generate Payroll"}
+          {showForm ? "✖ Close Form" : "+ Add Employee"}
         </button>
 
       </div>
 
-      {/* Generate Payroll Form */}
+      {/* ADD / EDIT EMPLOYEE FORM */}
       {showForm && (
 
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-8">
 
           <h2 className="text-2xl font-bold mb-6">
-            Generate Payroll
+            {editingId ? "Edit Employee" : "Add Employee"}
           </h2>
 
           <form
@@ -221,104 +334,131 @@ function Payroll() {
             className="grid grid-cols-1 md:grid-cols-2 gap-5"
           >
 
-            {/* Employee */}
-            <select
-              value={formData.employee}
-              onChange={handleEmployeeChange}
+            {/* EMPLOYEE ID */}
+            <input
+              type="text"
+              name="employeeId"
+              placeholder="Employee ID"
+              value={formData.employeeId}
+              onChange={handleChange}
+              readOnly={editingId !== null}
               required
+              className={`px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 ${
+                editingId !== null
+                  ? "bg-gray-100 dark:bg-gray-600"
+                  : "bg-white dark:bg-gray-700"
+              }`}
+            />
+
+            {/* FULL NAME */}
+            <input
+              type="text"
+              name="fullName"
+              placeholder="Full Name"
+              value={formData.fullName}
+              onChange={handleChange}
+              required
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+            />
+
+            {/* EMAIL */}
+            <input
+              type="email"
+              name="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+            />
+
+            {/* PHONE */}
+            <input
+              type="text"
+              name="phone"
+              placeholder="Phone"
+              value={formData.phone}
+              onChange={handleChange}
+              required
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+            />
+
+            {/* DEPARTMENT */}
+            <input
+              type="text"
+              name="department"
+              placeholder="Department"
+              value={formData.department}
+              onChange={handleChange}
+              required
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+            />
+
+            {/* DESIGNATION */}
+            <input
+              type="text"
+              name="designation"
+              placeholder="Designation"
+              value={formData.designation}
+              onChange={handleChange}
+              required
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+            />
+
+            {/* SALARY */}
+            <input
+              type="number"
+              name="salary"
+              placeholder="Salary"
+              value={formData.salary}
+              onChange={handleChange}
+              required
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+            />
+
+            {/* JOINING DATE */}
+            <input
+              type="date"
+              name="joiningDate"
+              value={formData.joiningDate}
+              onChange={handleChange}
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+            />
+
+            {/* STATUS */}
+            <select
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
               className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
             >
-
-              <option value="">
-                Select Employee
-              </option>
-
-              {employees.map((employee) => (
-
-                <option
-                  key={employee._id}
-                  value={employee._id}
-                >
-                  {employee.fullName} -{" "}
-                  {employee.employeeId}
-                </option>
-
-              ))}
-
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
             </select>
 
-            {/* Month */}
+            {/* PROFILE IMAGE URL */}
             <input
-              type="month"
-              name="month"
-              value={formData.month}
+              type="text"
+              name="profileImage"
+              placeholder="Profile Image URL (optional)"
+              value={formData.profileImage}
               onChange={handleChange}
-              required
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 md:col-span-2"
             />
 
-            {/* Basic Salary */}
-            <input
-              type="number"
-              name="basicSalary"
-              placeholder="Basic Salary"
-              value={formData.basicSalary}
-              readOnly
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
-            />
-
-            {/* Allowance */}
-            <input
-              type="number"
-              name="allowance"
-              placeholder="Allowance"
-              value={formData.allowance}
-              onChange={handleChange}
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-
-            {/* Bonus */}
-            <input
-              type="number"
-              name="bonus"
-              placeholder="Bonus"
-              value={formData.bonus}
-              onChange={handleChange}
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-
-            {/* Deduction */}
-            <input
-              type="number"
-              name="deduction"
-              placeholder="Deduction"
-              value={formData.deduction}
-              onChange={handleChange}
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-
-            {/* Net Salary */}
-            <div className="md:col-span-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
-
-              <p className="text-gray-500 dark:text-gray-400">
-                Net Salary
-              </p>
-
-              <h3 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{netSalary.toLocaleString("en-IN")}
-              </h3>
-
-            </div>
-
-            {/* Submit */}
+            {/* SUBMIT */}
             <button
               type="submit"
               disabled={saving}
               className="md:col-span-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white px-5 py-3 rounded-lg font-semibold"
             >
               {saving
-                ? "Generating..."
-                : "✅ Generate Payroll"}
+                ? editingId
+                  ? "Updating..."
+                  : "Adding..."
+                : editingId
+                ? "✅ Update Employee"
+                : "✅ Add Employee"}
             </button>
 
           </form>
@@ -327,70 +467,58 @@ function Payroll() {
 
       )}
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      {/* SEARCH BAR */}
+      <form
+        onSubmit={handleSearch}
+        className="flex flex-col sm:flex-row gap-3 mb-6"
+      >
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <p className="text-gray-500 dark:text-gray-400">
-            Total Payroll
-          </p>
+        <input
+          type="text"
+          placeholder="Search employee by name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
+        />
 
-          <h2 className="text-3xl font-bold mt-2">
-            {payrolls.length}
-          </h2>
-        </div>
+        <button
+          type="submit"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold"
+        >
+          🔍 Search
+        </button>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <p className="text-gray-500 dark:text-gray-400">
-            Total Salary
-          </p>
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={clearSearch}
+            className="bg-gray-500 hover:bg-gray-600 text-white px-5 py-3 rounded-lg font-semibold"
+          >
+            Clear
+          </button>
+        )}
 
-          <h2 className="text-3xl font-bold mt-2">
-            ₹{totalSalary.toLocaleString("en-IN")}
-          </h2>
-        </div>
+      </form>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <p className="text-gray-500 dark:text-gray-400">
-            Paid
-          </p>
-
-          <h2 className="text-3xl font-bold mt-2 text-green-500">
-            {paidPayments}
-          </h2>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
-          <p className="text-gray-500 dark:text-gray-400">
-            Pending
-          </p>
-
-          <h2 className="text-3xl font-bold mt-2 text-orange-500">
-            {pendingPayments}
-          </h2>
-        </div>
-
-      </div>
-
-      {/* Payroll Records */}
+      {/* EMPLOYEE RECORDS */}
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
 
         <div className="p-5 border-b dark:border-gray-700">
           <h2 className="text-xl font-semibold">
-            Payroll Records
+            Employee Records
           </h2>
         </div>
 
         {loading ? (
 
           <div className="p-8 text-center">
-            Loading payroll records...
+            Loading employees...
           </div>
 
-        ) : payrolls.length === 0 ? (
+        ) : employees.length === 0 ? (
 
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-            No payroll records found.
+            No employees found.
           </div>
 
         ) : (
@@ -402,120 +530,103 @@ function Payroll() {
               <thead className="bg-gray-50 dark:bg-gray-700">
 
                 <tr>
-
-                  <th className="p-4">
-                    Employee
-                  </th>
-
-                  <th className="p-4">
-                    Department
-                  </th>
-
-                  <th className="p-4">
-                    Month
-                  </th>
-
-                  <th className="p-4">
-                    Basic Salary
-                  </th>
-
-                  <th className="p-4">
-                    Net Salary
-                  </th>
-
-                  <th className="p-4">
-                    Status
-                  </th>
-
-                  <th className="p-4">
-                    Action
-                  </th>
-
+                  <th className="p-4">Employee ID</th>
+                  <th className="p-4">Full Name</th>
+                  <th className="p-4">Department</th>
+                  <th className="p-4">Designation</th>
+                  <th className="p-4">Salary</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4">Action</th>
                 </tr>
 
               </thead>
 
               <tbody>
 
-                {payrolls.map((payroll) => (
+                {employees.map((employee) => (
 
                   <tr
-                    key={payroll._id}
+                    key={employee._id}
                     className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
 
+                    <td className="p-4">
+                      {employee.employeeId}
+                    </td>
+
                     <td className="p-4 font-medium">
-                      {payroll.employee?.fullName ||
-                        "N/A"}
+                      {employee.fullName}
                     </td>
 
                     <td className="p-4">
-                      {payroll.employee?.department ||
-                        "N/A"}
+                      {employee.department}
                     </td>
 
                     <td className="p-4">
-                      {payroll.month}
+                      {employee.designation}
                     </td>
 
                     <td className="p-4">
                       ₹
                       {Number(
-                        payroll.basicSalary || 0
-                      ).toLocaleString("en-IN")}
-                    </td>
-
-                    <td className="p-4 font-semibold">
-                      ₹
-                      {Number(
-                        payroll.netSalary || 0
+                        employee.salary || 0
                       ).toLocaleString("en-IN")}
                     </td>
 
                     <td className="p-4">
-
                       <span
                         className={`px-3 py-1 rounded-full text-sm ${
-                          payroll.paymentStatus ===
-                          "Paid"
+                          employee.status === "Active"
                             ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                            : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
+                            : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
                         }`}
                       >
-                        {payroll.paymentStatus}
+                        {employee.status}
                       </span>
-
                     </td>
 
                     <td className="p-4">
 
-                      {payroll.paymentStatus ===
-                      "Pending" ? (
+                      <div className="flex gap-2">
 
                         <button
                           onClick={() =>
-                            handleMarkAsPaid(
-                              payroll._id
+                            navigate(
+                              `/employees/${employee._id}`
+                            )
+                          }
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                        >
+                          👁️ View
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            startEdit(employee)
+                          }
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                        >
+                          ✏️ Edit
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleDelete(
+                              employee._id,
+                              employee.fullName
                             )
                           }
                           disabled={
-                            payingId === payroll._id
+                            deletingId === employee._id
                           }
-                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white px-3 py-2 rounded-lg text-sm font-medium"
+                          className="bg-red-600 hover:bg-red-700 disabled:bg-gray-500 text-white px-3 py-2 rounded-lg text-sm font-medium"
                         >
-                          {payingId ===
-                          payroll._id
-                            ? "Processing..."
-                            : "Mark as Paid"}
+                          {deletingId === employee._id
+                            ? "Deleting..."
+                            : "🗑️ Delete"}
                         </button>
 
-                      ) : (
-
-                        <span className="text-green-600 dark:text-green-400 font-medium">
-                          ✓ Paid
-                        </span>
-
-                      )}
+                      </div>
 
                     </td>
 
@@ -537,4 +648,4 @@ function Payroll() {
   );
 }
 
-export default Payroll;
+export default Employees;
