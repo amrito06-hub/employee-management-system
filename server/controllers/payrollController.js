@@ -12,6 +12,14 @@ const createPayroll = async (req, res) => {
       deduction = 0,
     } = req.body;
 
+    if (!employee || !month || !basicSalary) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Employee, month and basic salary are required",
+      });
+    }
+
     const netSalary =
       Number(basicSalary) +
       Number(allowance) +
@@ -21,10 +29,10 @@ const createPayroll = async (req, res) => {
     const payroll = await Payroll.create({
       employee,
       month,
-      basicSalary,
-      allowance,
-      bonus,
-      deduction,
+      basicSalary: Number(basicSalary),
+      allowance: Number(allowance),
+      bonus: Number(bonus),
+      deduction: Number(deduction),
       netSalary,
     });
 
@@ -34,6 +42,8 @@ const createPayroll = async (req, res) => {
       payroll,
     });
   } catch (error) {
+    console.error("Create Payroll Error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -56,6 +66,8 @@ const getPayrolls = async (req, res) => {
       payrolls,
     });
   } catch (error) {
+    console.error("Get Payroll Error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -88,10 +100,12 @@ const markPayrollAsPaid = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Payroll marked as paid successfully",
+      message: "Payroll marked as Paid successfully",
       payroll,
     });
   } catch (error) {
+    console.error("Mark Payroll Paid Error:", error);
+
     res.status(500).json({
       success: false,
       message: error.message,
