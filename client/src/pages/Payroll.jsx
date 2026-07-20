@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
 function Payroll() {
+  const navigate = useNavigate();
+
   const [payrolls, setPayrolls] = useState([]);
   const [employees, setEmployees] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [payingId, setPayingId] = useState(null);
+  const [error, setError] = useState("");
 
-  // Search and Filters
   const [search, setSearch] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -27,21 +31,35 @@ function Payroll() {
   // =========================
   // FETCH PAYROLLS
   // =========================
-  const fetchPayrolls = async () => {
+  const fetchPayrolls = async (isRefresh = false) => {
     try {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
+      setError("");
+
       const response = await API.get("/payroll");
 
       setPayrolls(response.data.payrolls || []);
     } catch (error) {
       console.error("Payroll Load Error:", error);
 
-      alert(
+      const message =
         error.response?.data?.message ||
-          error.message ||
-          "Payroll Data Load Failed"
-      );
+        error.message ||
+        "Payroll Data Load Failed";
+
+      setError(message);
+
+      if (!isRefresh) {
+        alert(message);
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -57,11 +75,6 @@ function Payroll() {
           Authorization: `Bearer ${token}`,
         },
       });
-
-      console.log(
-        "PAYROLL EMPLOYEES RESPONSE:",
-        response.data
-      );
 
       setEmployees(response.data.employees || []);
     } catch (error) {
@@ -82,6 +95,16 @@ function Payroll() {
     fetchPayrolls();
     fetchEmployees();
   }, []);
+
+  // =========================
+  // REFRESH ALL DATA
+  // =========================
+  const handleRefresh = async () => {
+    await Promise.all([
+      fetchPayrolls(true),
+      fetchEmployees(),
+    ]);
+  };
 
   // =========================
   // EMPLOYEE SELECT
@@ -115,6 +138,22 @@ function Payroll() {
   };
 
   // =========================
+  // RESET FORM
+  // =========================
+  const resetForm = () => {
+    setFormData({
+      employee: "",
+      month: "",
+      basicSalary: "",
+      allowance: "",
+      bonus: "",
+      deduction: "",
+    });
+
+    setShowForm(false);
+  };
+
+  // =========================
   // NET SALARY
   // =========================
   const netSalary =
@@ -141,11 +180,6 @@ function Payroll() {
         deduction: Number(formData.deduction || 0),
       };
 
-      console.log(
-        "PAYROLL DATA BEING SENT:",
-        payrollData
-      );
-
       const response = await API.post(
         "/payroll/create",
         payrollData
@@ -156,27 +190,13 @@ function Payroll() {
           "Payroll Generated Successfully"
       );
 
-      setFormData({
-        employee: "",
-        month: "",
-        basicSalary: "",
-        allowance: "",
-        bonus: "",
-        deduction: "",
-      });
+      resetForm();
 
-      setShowForm(false);
-
-      fetchPayrolls();
+      await fetchPayrolls();
     } catch (error) {
       console.error(
         "Payroll Generate Error:",
         error
-      );
-
-      console.log(
-        "Backend Error Response:",
-        error.response?.data
       );
 
       alert(
@@ -193,6 +213,14 @@ function Payroll() {
   // MARK AS PAID
   // =========================
   const handleMarkAsPaid = async (payrollId) => {
+    const confirmPayment = window.confirm(
+      "Are you sure you want to mark this payroll as Paid?"
+    );
+
+    if (!confirmPayment) {
+      return;
+    }
+
     try {
       setPayingId(payrollId);
 
@@ -205,7 +233,7 @@ function Payroll() {
           "Payroll marked as Paid"
       );
 
-      fetchPayrolls();
+      await fetchPayrolls();
     } catch (error) {
       console.error(
         "Mark Paid Error:",
@@ -225,9 +253,9 @@ function Payroll() {
   // =========================
   // FILTER PAYROLLS
   // =========================
-  const filteredPayrolls = payrolls.filter(
-    (payroll) => {
-      const searchText = search.toLowerCase();
+  const filteredPayrolls = useMemo(() => {
+    return payrolls.filter((payroll) => {
+      const searchText = search.toLowerCase().trim();
 
       const employeeName =
         payroll.employee?.fullName?.toLowerCase() || "";
@@ -256,8 +284,13 @@ function Payroll() {
         matchesMonth &&
         matchesStatus
       );
-    }
-  );
+    });
+  }, [
+    payrolls,
+    search,
+    monthFilter,
+    statusFilter,
+  ]);
 
   // =========================
   // STATISTICS
@@ -267,6 +300,28 @@ function Payroll() {
       total + Number(payroll.netSalary || 0),
     0
   );
+
+  const paidSalary = payrolls
+    .filter(
+      (payroll) =>
+        payroll.paymentStatus === "Paid"
+    )
+    .reduce(
+      (total, payroll) =>
+        total + Number(payroll.netSalary || 0),
+      0
+    );
+
+  const pendingSalary = payrolls
+    .filter(
+      (payroll) =>
+        payroll.paymentStatus === "Pending"
+    )
+    .reduce(
+      (total, payroll) =>
+        total + Number(payroll.netSalary || 0),
+      0
+    );
 
   const paidPayments = payrolls.filter(
     (payroll) =>
@@ -279,461 +334,620 @@ function Payroll() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 text-gray-900 dark:text-white">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 text-slate-900 dark:text-white">
 
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+      <div className="max-w-7xl mx-auto">
 
-        <div>
-          <h1 className="text-3xl font-bold">
-            Payroll & Salary
-          </h1>
+        {/* HEADER */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
 
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Manage employee salaries and payroll
-          </p>
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold">
+              Payroll & Salary
+            </h1>
+
+            <p className="text-slate-500 dark:text-slate-400 mt-2">
+              Manage employee salaries, payments and payroll records.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3">
+
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 px-5 py-3 rounded-xl font-semibold transition disabled:opacity-60"
+            >
+              {refreshing
+                ? "Refreshing..."
+                : "🔄 Refresh"}
+            </button>
+
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition"
+            >
+              {showForm
+                ? "✖ Close Form"
+                : "+ Generate Payroll"}
+            </button>
+
+          </div>
+
         </div>
 
-        <button
-          onClick={() =>
-            setShowForm(!showForm)
-          }
-          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold"
-        >
-          {showForm
-            ? "✖ Close Form"
-            : "+ Generate Payroll"}
-        </button>
+        {/* GENERATE PAYROLL FORM */}
+        {showForm && (
 
-      </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 sm:p-6 mb-8">
 
-      {/* GENERATE PAYROLL FORM */}
-      {showForm && (
+            <div className="flex items-center justify-between mb-6">
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-6 mb-8">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  Generate Payroll
+                </h2>
 
-          <h2 className="text-2xl font-bold mb-6">
-            Generate Payroll
-          </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  Create a salary record for an employee.
+                </p>
+              </div>
 
-          <form
-            onSubmit={handleSubmit}
-            className="grid grid-cols-1 md:grid-cols-2 gap-5"
-          >
-
-            {/* EMPLOYEE */}
-            <select
-              value={formData.employee}
-              onChange={handleEmployeeChange}
-              required
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            >
-
-              <option value="">
-                Select Employee
-              </option>
-
-              {employees.map((employee) => (
-
-                <option
-                  key={employee._id}
-                  value={employee._id}
-                >
-                  {employee.fullName} -{" "}
-                  {employee.employeeId}
-                </option>
-
-              ))}
-
-            </select>
-
-            {/* MONTH */}
-            <input
-              type="month"
-              name="month"
-              value={formData.month}
-              onChange={handleChange}
-              required
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-
-            {/* BASIC SALARY */}
-            <input
-              type="number"
-              name="basicSalary"
-              placeholder="Basic Salary"
-              value={formData.basicSalary}
-              readOnly
-              required
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700"
-            />
-
-            {/* ALLOWANCE */}
-            <input
-              type="number"
-              name="allowance"
-              placeholder="Allowance"
-              value={formData.allowance}
-              onChange={handleChange}
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-
-            {/* BONUS */}
-            <input
-              type="number"
-              name="bonus"
-              placeholder="Bonus"
-              value={formData.bonus}
-              onChange={handleChange}
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-
-            {/* DEDUCTION */}
-            <input
-              type="number"
-              name="deduction"
-              placeholder="Deduction"
-              value={formData.deduction}
-              onChange={handleChange}
-              className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700"
-            />
-
-            {/* NET SALARY */}
-            <div className="md:col-span-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
-
-              <p className="text-gray-500 dark:text-gray-400">
-                Net Salary
-              </p>
-
-              <h3 className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                ₹{netSalary.toLocaleString("en-IN")}
-              </h3>
+              <button
+                onClick={resetForm}
+                className="text-slate-500 hover:text-red-500 text-xl"
+              >
+                ✕
+              </button>
 
             </div>
 
-            {/* SUBMIT */}
-            <button
-              type="submit"
-              disabled={saving}
-              className="md:col-span-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white px-5 py-3 rounded-lg font-semibold"
+            <form
+              onSubmit={handleSubmit}
+              className="grid grid-cols-1 md:grid-cols-2 gap-5"
             >
-              {saving
-                ? "Generating..."
-                : "✅ Generate Payroll"}
-            </button>
 
-          </form>
+              {/* EMPLOYEE */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Employee
+                </label>
 
-        </div>
+                <select
+                  value={formData.employee}
+                  onChange={handleEmployeeChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">
+                    Select Employee
+                  </option>
 
-      )}
+                  {employees.map((employee) => (
+                    <option
+                      key={employee._id}
+                      value={employee._id}
+                    >
+                      {employee.fullName} -{" "}
+                      {employee.employeeId}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-      {/* STATISTICS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+              {/* MONTH */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Payroll Month
+                </label>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+                <input
+                  type="month"
+                  name="month"
+                  value={formData.month}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-          <p className="text-gray-500 dark:text-gray-400">
-            Total Payroll
-          </p>
+              {/* BASIC SALARY */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Basic Salary
+                </label>
 
-          <h2 className="text-3xl font-bold mt-2">
-            {payrolls.length}
-          </h2>
+                <input
+                  type="number"
+                  name="basicSalary"
+                  placeholder="Basic Salary"
+                  value={formData.basicSalary}
+                  readOnly
+                  required
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700 outline-none"
+                />
+              </div>
 
-        </div>
+              {/* ALLOWANCE */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Allowance
+                </label>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+                <input
+                  type="number"
+                  name="allowance"
+                  placeholder="Allowance"
+                  value={formData.allowance}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-          <p className="text-gray-500 dark:text-gray-400">
-            Total Salary
-          </p>
+              {/* BONUS */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Bonus
+                </label>
 
-          <h2 className="text-3xl font-bold mt-2">
-            ₹{totalSalary.toLocaleString("en-IN")}
-          </h2>
+                <input
+                  type="number"
+                  name="bonus"
+                  placeholder="Bonus"
+                  value={formData.bonus}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-        </div>
+              {/* DEDUCTION */}
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Deduction
+                </label>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+                <input
+                  type="number"
+                  name="deduction"
+                  placeholder="Deduction"
+                  value={formData.deduction}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
 
-          <p className="text-gray-500 dark:text-gray-400">
-            Paid
-          </p>
+              {/* NET SALARY */}
+              <div className="md:col-span-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-800 rounded-xl p-5">
 
-          <h2 className="text-3xl font-bold mt-2 text-green-500">
-            {paidPayments}
-          </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Net Salary
+                </p>
 
-        </div>
+                <h3 className="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                  ₹{netSalary.toLocaleString("en-IN")}
+                </h3>
 
-        <div className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow">
+              </div>
 
-          <p className="text-gray-500 dark:text-gray-400">
-            Pending
-          </p>
+              {/* SUBMIT */}
+              <button
+                type="submit"
+                disabled={saving}
+                className="md:col-span-2 bg-green-600 hover:bg-green-700 disabled:bg-slate-500 text-white px-5 py-3 rounded-xl font-semibold transition"
+              >
+                {saving
+                  ? "Generating..."
+                  : "✅ Generate Payroll"}
+              </button>
 
-          <h2 className="text-3xl font-bold mt-2 text-orange-500">
-            {pendingPayments}
-          </h2>
+            </form>
 
-        </div>
-
-      </div>
-
-      {/* SEARCH AND FILTERS */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 mb-6">
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-          {/* SEARCH */}
-          <input
-            type="text"
-            placeholder="Search employee, ID or department..."
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          {/* MONTH FILTER */}
-          <input
-            type="month"
-            value={monthFilter}
-            onChange={(e) =>
-              setMonthFilter(e.target.value)
-            }
-            className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
-          />
-
-          {/* STATUS FILTER */}
-          <select
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value)
-            }
-            className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 outline-none focus:ring-2 focus:ring-blue-500"
-          >
-
-            <option value="All">
-              All Payment Status
-            </option>
-
-            <option value="Paid">
-              Paid
-            </option>
-
-            <option value="Pending">
-              Pending
-            </option>
-
-          </select>
-
-        </div>
-
-        {/* CLEAR FILTERS */}
-        {(search ||
-          monthFilter ||
-          statusFilter !== "All") && (
-
-          <button
-            onClick={() => {
-              setSearch("");
-              setMonthFilter("");
-              setStatusFilter("All");
-            }}
-            className="mt-4 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg"
-          >
-            Clear Filters
-          </button>
+          </div>
 
         )}
 
-      </div>
+        {/* STATISTICS */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
 
-      {/* PAYROLL RECORDS */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow overflow-hidden">
+          <div
+            onClick={() => {
+              setStatusFilter("All");
+              setSearch("");
+              setMonthFilter("");
+            }}
+            className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-lg transition"
+          >
+            <p className="text-slate-500 dark:text-slate-400">
+              Total Payroll Records
+            </p>
 
-        <div className="p-5 border-b dark:border-gray-700 flex justify-between items-center">
+            <h2 className="text-3xl font-bold mt-3">
+              {payrolls.length}
+            </h2>
+          </div>
 
-          <h2 className="text-xl font-semibold">
-            Payroll Records
-          </h2>
+          <div
+            onClick={() => navigate("/payroll")}
+            className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-lg transition"
+          >
+            <p className="text-slate-500 dark:text-slate-400">
+              Total Payroll Amount
+            </p>
 
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            Showing {filteredPayrolls.length} of{" "}
-            {payrolls.length}
-          </span>
+            <h2 className="text-2xl sm:text-3xl font-bold mt-3 text-blue-600 dark:text-blue-400 break-words">
+              ₹{totalSalary.toLocaleString("en-IN")}
+            </h2>
+          </div>
+
+          <div
+            onClick={() => setStatusFilter("Paid")}
+            className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-lg transition"
+          >
+            <p className="text-slate-500 dark:text-slate-400">
+              Paid Salary
+            </p>
+
+            <h2 className="text-2xl sm:text-3xl font-bold mt-3 text-green-600 dark:text-green-400 break-words">
+              ₹{paidSalary.toLocaleString("en-IN")}
+            </h2>
+
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              {paidPayments} paid records
+            </p>
+          </div>
+
+          <div
+            onClick={() => setStatusFilter("Pending")}
+            className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 cursor-pointer hover:shadow-lg transition"
+          >
+            <p className="text-slate-500 dark:text-slate-400">
+              Pending Salary
+            </p>
+
+            <h2 className="text-2xl sm:text-3xl font-bold mt-3 text-orange-500 break-words">
+              ₹{pendingSalary.toLocaleString("en-IN")}
+            </h2>
+
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              {pendingPayments} pending records
+            </p>
+          </div>
 
         </div>
 
-        {loading ? (
+        {/* ERROR STATE */}
+        {error && (
 
-          <div className="p-8 text-center">
-            Loading payroll records...
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 rounded-xl p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+
+            <span>
+              {error}
+            </span>
+
+            <button
+              onClick={() => fetchPayrolls()}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+            >
+              Retry
+            </button>
+
           </div>
 
-        ) : filteredPayrolls.length === 0 ? (
+        )}
 
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-            No payroll records found.
+        {/* SEARCH AND FILTERS */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 mb-6">
+
+          <div className="flex items-center justify-between mb-4">
+
+            <h2 className="text-lg font-semibold">
+              Search & Filters
+            </h2>
+
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {filteredPayrolls.length} results
+            </span>
+
           </div>
 
-        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-          <div className="overflow-x-auto">
+            <input
+              type="text"
+              placeholder="Search employee, ID or department..."
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+              className="px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+            />
 
-            <table className="w-full text-left">
+            <input
+              type="month"
+              value={monthFilter}
+              onChange={(e) =>
+                setMonthFilter(e.target.value)
+              }
+              className="px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+            />
 
-              <thead className="bg-gray-50 dark:bg-gray-700">
+            <select
+              value={statusFilter}
+              onChange={(e) =>
+                setStatusFilter(e.target.value)
+              }
+              className="px-4 py-3 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="All">
+                All Payment Status
+              </option>
 
-                <tr>
+              <option value="Paid">
+                Paid
+              </option>
 
-                  <th className="p-4">
-                    Employee
-                  </th>
+              <option value="Pending">
+                Pending
+              </option>
+            </select>
 
-                  <th className="p-4">
-                    Department
-                  </th>
+          </div>
 
-                  <th className="p-4">
-                    Month
-                  </th>
+          {(search ||
+            monthFilter ||
+            statusFilter !== "All") && (
 
-                  <th className="p-4">
-                    Basic Salary
-                  </th>
+            <button
+              onClick={() => {
+                setSearch("");
+                setMonthFilter("");
+                setStatusFilter("All");
+              }}
+              className="mt-4 bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded-lg"
+            >
+              Clear Filters
+            </button>
 
-                  <th className="p-4">
-                    Net Salary
-                  </th>
+          )}
 
-                  <th className="p-4">
-                    Status
-                  </th>
+        </div>
 
-                  <th className="p-4">
-                    Payment Date
-                  </th>
+        {/* PAYROLL RECORDS */}
+        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
 
-                  <th className="p-4">
-                    Action
-                  </th>
+          <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
 
-                </tr>
+            <div>
+              <h2 className="text-xl font-semibold">
+                Payroll Records
+              </h2>
 
-              </thead>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                Manage and track all employee salary payments.
+              </p>
+            </div>
 
-              <tbody>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              Showing {filteredPayrolls.length} of{" "}
+              {payrolls.length}
+            </span>
 
-                {filteredPayrolls.map((payroll) => (
+          </div>
 
-                  <tr
-                    key={payroll._id}
-                    className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
+          {loading ? (
 
-                    <td className="p-4 font-medium">
-                      {payroll.employee?.fullName ||
-                        "N/A"}
-                    </td>
+            <div className="p-10 text-center">
 
-                    <td className="p-4">
-                      {payroll.employee?.department ||
-                        "N/A"}
-                    </td>
+              <div className="animate-pulse space-y-3">
 
-                    <td className="p-4">
-                      {payroll.month}
-                    </td>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/2 mx-auto" />
 
-                    <td className="p-4">
-                      ₹
-                      {Number(
-                        payroll.basicSalary || 0
-                      ).toLocaleString("en-IN")}
-                    </td>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mx-auto" />
 
-                    <td className="p-4 font-semibold">
-                      ₹
-                      {Number(
-                        payroll.netSalary || 0
-                      ).toLocaleString("en-IN")}
-                    </td>
+                <p className="text-slate-500 dark:text-slate-400 pt-2">
+                  Loading payroll records...
+                </p>
 
-                    <td className="p-4">
+              </div>
 
-                      <span
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          payroll.paymentStatus ===
-                          "Paid"
-                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                            : "bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300"
-                        }`}
-                      >
-                        {payroll.paymentStatus}
-                      </span>
+            </div>
 
-                    </td>
+          ) : filteredPayrolls.length === 0 ? (
 
-                    {/* PAYMENT DATE */}
-                    <td className="p-4">
+            <div className="p-12 text-center">
 
-                      {payroll.paymentDate
-                        ? new Date(
-                            payroll.paymentDate
-                          ).toLocaleDateString(
-                            "en-IN"
-                          )
-                        : "-"}
+              <div className="text-5xl mb-4">
+                🧾
+              </div>
 
-                    </td>
+              <h3 className="text-lg font-semibold">
+                No payroll records found
+              </h3>
 
-                    <td className="p-4">
+              <p className="text-slate-500 dark:text-slate-400 mt-2">
+                Try changing your filters or generate a new payroll.
+              </p>
 
-                      {payroll.paymentStatus ===
-                      "Pending" ? (
+            </div>
 
-                        <button
-                          onClick={() =>
-                            handleMarkAsPaid(
-                              payroll._id
-                            )
-                          }
-                          disabled={
-                            payingId === payroll._id
-                          }
-                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white px-3 py-2 rounded-lg text-sm font-medium"
-                        >
-                          {payingId ===
-                          payroll._id
-                            ? "Processing..."
-                            : "Mark as Paid"}
-                        </button>
+          ) : (
 
-                      ) : (
+            <div className="overflow-x-auto">
 
-                        <span className="text-green-600 dark:text-green-400 font-medium">
-                          ✓ Paid
-                        </span>
+              <table className="w-full min-w-[1100px] text-left">
 
-                      )}
+                <thead className="bg-slate-100 dark:bg-slate-700">
 
-                    </td>
+                  <tr>
+
+                    <th className="p-4">
+                      Employee
+                    </th>
+
+                    <th className="p-4">
+                      Department
+                    </th>
+
+                    <th className="p-4">
+                      Month
+                    </th>
+
+                    <th className="p-4">
+                      Basic Salary
+                    </th>
+
+                    <th className="p-4">
+                      Net Salary
+                    </th>
+
+                    <th className="p-4">
+                      Status
+                    </th>
+
+                    <th className="p-4">
+                      Payment Date
+                    </th>
+
+                    <th className="p-4">
+                      Action
+                    </th>
 
                   </tr>
 
-                ))}
+                </thead>
 
-              </tbody>
+                <tbody>
 
-            </table>
+                  {filteredPayrolls.map((payroll) => (
 
-          </div>
+                    <tr
+                      key={payroll._id}
+                      className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition"
+                    >
 
-        )}
+                      <td className="p-4">
+
+                        <button
+                          onClick={() => {
+                            if (payroll.employee?._id) {
+                              navigate(
+                                `/employees/${payroll.employee._id}`
+                              );
+                            }
+                          }}
+                          className="text-left"
+                        >
+
+                          <p className="font-semibold hover:text-blue-600 transition">
+                            {payroll.employee?.fullName ||
+                              "N/A"}
+                          </p>
+
+                          <p className="text-sm text-slate-500 dark:text-slate-400">
+                            {payroll.employee?.employeeId ||
+                              "N/A"}
+                          </p>
+
+                        </button>
+
+                      </td>
+
+                      <td className="p-4">
+                        {payroll.employee?.department ||
+                          "N/A"}
+                      </td>
+
+                      <td className="p-4">
+                        {payroll.month || "-"}
+                      </td>
+
+                      <td className="p-4">
+                        ₹
+                        {Number(
+                          payroll.basicSalary || 0
+                        ).toLocaleString("en-IN")}
+                      </td>
+
+                      <td className="p-4 font-semibold text-blue-600 dark:text-blue-400">
+                        ₹
+                        {Number(
+                          payroll.netSalary || 0
+                        ).toLocaleString("en-IN")}
+                      </td>
+
+                      <td className="p-4">
+
+                        <span
+                          className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${
+                            payroll.paymentStatus ===
+                            "Paid"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                              : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"
+                          }`}
+                        >
+                          {payroll.paymentStatus ||
+                            "Pending"}
+                        </span>
+
+                      </td>
+
+                      <td className="p-4">
+
+                        {payroll.paymentDate
+                          ? new Date(
+                              payroll.paymentDate
+                            ).toLocaleDateString(
+                              "en-IN"
+                            )
+                          : "-"}
+
+                      </td>
+
+                      <td className="p-4">
+
+                        {payroll.paymentStatus ===
+                        "Pending" ? (
+
+                          <button
+                            onClick={() =>
+                              handleMarkAsPaid(
+                                payroll._id
+                              )
+                            }
+                            disabled={
+                              payingId === payroll._id
+                            }
+                            className="bg-green-600 hover:bg-green-700 disabled:bg-slate-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap"
+                          >
+                            {payingId ===
+                            payroll._id
+                              ? "Processing..."
+                              : "Mark as Paid"}
+                          </button>
+
+                        ) : (
+
+                          <span className="text-green-600 dark:text-green-400 font-medium whitespace-nowrap">
+                            ✓ Paid
+                          </span>
+
+                        )}
+
+                      </td>
+
+                    </tr>
+
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          )}
+
+        </div>
 
       </div>
 

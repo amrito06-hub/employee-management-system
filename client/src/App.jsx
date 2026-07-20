@@ -1,60 +1,65 @@
-import { Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Employees from "./pages/Employees";
 import EmployeeDetails from "./pages/EmployeeDetails";
 import Departments from "./pages/Departments";
 import Payroll from "./pages/Payroll";
 
-import MainLayout from "./layouts/MainLayout";
-
 function App() {
+  const token = localStorage.getItem("token");
+
   return (
-    <Routes>
-
-      {/* Login - Without Sidebar */}
-      <Route
-        path="/"
-        element={<Login />}
-      />
-
-      {/* Main Application Layout */}
-      <Route element={<MainLayout />}>
-
-        {/* Dashboard */}
+    <BrowserRouter>
+      <Routes>
+        {/* DEFAULT */}
         <Route
-          path="/dashboard"
-          element={<Dashboard />}
+          path="/"
+          element={
+            token ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
         />
 
-        {/* Employees */}
-        <Route
-          path="/employees"
-          element={<Employees />}
-        />
+        {/* AUTH */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        {/* Employee Details */}
+        {/* DASHBOARD */}
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* EMPLOYEES */}
+        <Route path="/employees" element={<Employees />} />
+
         <Route
           path="/employees/:id"
           element={<EmployeeDetails />}
         />
 
-        {/* Departments */}
+        {/* DEPARTMENTS */}
         <Route
           path="/departments"
           element={<Departments />}
         />
 
-        {/* Payroll */}
+        {/* PAYROLL */}
         <Route
           path="/payroll"
           element={<Payroll />}
         />
 
-      </Route>
-
-    </Routes>
+        {/* INVALID ROUTE */}
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

@@ -4,6 +4,7 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 
+const adminRoutes = require("./routes/adminRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
 const payrollRoutes = require("./routes/payrollRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
@@ -33,6 +34,12 @@ app.get("/", (req, res) => {
     "Employee Management System Server is Running"
   );
 });
+
+// Admin Routes (Login / Register)
+app.use(
+  "/api/admin",
+  adminRoutes
+);
 
 // Employee Routes
 app.use(

@@ -1,115 +1,229 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 
 function Departments() {
+  const navigate = useNavigate();
+
   const [departments, setDepartments] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    getDepartmentStats();
-  }, []);
-
-  const getDepartmentStats = async () => {
+  const loadDepartments = async () => {
     try {
-      const token = localStorage.getItem("token");
+      setLoading(true);
+      setError("");
 
-      const res = await API.get("/dashboard/departments", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const [departmentResponse, employeeResponse] =
+        await Promise.all([
+          API.get("/dashboard/departments"),
+          API.get("/employees"),
+        ]);
 
-      setDepartments(res.data.departments || []);
+      setDepartments(
+        departmentResponse.data.departments || []
+      );
+
+      setEmployees(
+        employeeResponse.data.employees || []
+      );
     } catch (error) {
-      console.log("Department Load Error:", error);
+      console.error(
+        "Departments Load Error:",
+        error
+      );
 
-      alert(
+      setError(
         error.response?.data?.message ||
-          "Department Data Load Failed"
+          "Department data load failed"
       );
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadDepartments();
+  }, []);
+
+  const getDepartmentEmployees = (departmentName) => {
+    return employees.filter(
+      (employee) =>
+        employee.department === departmentName
+    );
+  };
+
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-8 transition-colors duration-300">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-6 md:p-8 text-slate-800 dark:text-white">
 
-      {/* Header */}
-      <div className="mb-8">
+      <div className="max-w-7xl mx-auto">
 
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-white">
-          Departments
-        </h1>
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
 
-        <p className="text-gray-500 dark:text-gray-400 mt-2">
-          Department-wise employee statistics
-        </p>
+          <div>
+            <h1 className="text-3xl font-bold">
+              Departments
+            </h1>
 
-      </div>
+            <p className="text-slate-500 dark:text-slate-400 mt-2">
+              View employees department-wise
+            </p>
+          </div>
 
-      {/* Loading */}
-      {loading ? (
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-10 text-center">
-
-          <p className="text-gray-500 dark:text-gray-400">
-            Loading departments...
-          </p>
-
-        </div>
-
-      ) : departments.length === 0 ? (
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-10 text-center">
-
-          <p className="text-gray-500 dark:text-gray-400">
-            No departments found
-          </p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold"
+          >
+            ← Back to Dashboard
+          </button>
 
         </div>
 
-      ) : (
+        {/* LOADING */}
+        {loading && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-sm">
+            <p className="text-slate-500 dark:text-slate-400">
+              Loading departments...
+            </p>
+          </div>
+        )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* ERROR */}
+        {!loading && error && (
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-sm">
 
-          {departments.map((department, index) => (
+            <p className="text-red-500 mb-4">
+              {error}
+            </p>
 
-            <div
-              key={department.department || index}
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 hover:shadow-2xl transition"
+            <button
+              onClick={loadDepartments}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl"
             >
+              Try Again
+            </button>
 
-              {/* Department Icon */}
-              <div className="w-14 h-14 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-3xl mb-5">
-                🏢
-              </div>
+          </div>
+        )}
 
-              {/* Department Name */}
-              <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                {department.department}
-              </h2>
+        {/* EMPTY */}
+        {!loading &&
+          !error &&
+          departments.length === 0 && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center shadow-sm">
 
-              {/* Employee Count */}
-              <p className="text-gray-500 dark:text-gray-400 mt-3">
-                Total Employees
-              </p>
-
-              <p className="text-4xl font-bold text-blue-600 dark:text-blue-400 mt-2">
-                {department.count}
-              </p>
-
-              <p className="text-gray-500 dark:text-gray-400 mt-1">
-                Employees
+              <p className="text-slate-500 dark:text-slate-400">
+                No department data available.
               </p>
 
             </div>
+          )}
 
-          ))}
+        {/* DEPARTMENT CARDS */}
+        {!loading &&
+          !error &&
+          departments.length > 0 && (
 
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
 
-      )}
+              {departments.map((department) => {
+
+                const departmentEmployees =
+                  getDepartmentEmployees(
+                    department.department
+                  );
+
+                return (
+                  <div
+                    key={department.department}
+                    className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm p-6 hover:shadow-lg transition"
+                  >
+
+                    <div className="flex items-start justify-between gap-4">
+
+                      <div className="min-w-0">
+
+                        <h2 className="text-xl font-bold break-words">
+                          {department.department}
+                        </h2>
+
+                        <p className="text-slate-500 dark:text-slate-400 mt-1">
+                          Department
+                        </p>
+
+                      </div>
+
+                      <div className="text-3xl">
+                        🏢
+                      </div>
+
+                    </div>
+
+                    <div className="mt-6">
+
+                      <p className="text-4xl font-bold text-blue-600">
+                        {department.count}
+                      </p>
+
+                      <p className="text-slate-500 dark:text-slate-400">
+                        Total Employees
+                      </p>
+
+                    </div>
+
+                    {departmentEmployees.length > 0 && (
+
+                      <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-4">
+
+                        <p className="font-semibold mb-3">
+                          Employees
+                        </p>
+
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+
+                          {departmentEmployees.map(
+                            (employee) => (
+
+                              <button
+                                key={employee._id}
+                                onClick={() =>
+                                  navigate(
+                                    `/employees/${employee._id}`
+                                  )
+                                }
+                                className="w-full text-left p-3 rounded-lg bg-slate-100 dark:bg-slate-700 hover:bg-blue-100 dark:hover:bg-slate-600 transition"
+                              >
+
+                                <p className="font-semibold truncate">
+                                  {employee.fullName}
+                                </p>
+
+                                <p className="text-sm text-slate-500 dark:text-slate-300 truncate">
+                                  {employee.designation}
+                                </p>
+
+                              </button>
+
+                            )
+                          )}
+
+                        </div>
+
+                      </div>
+
+                    )}
+
+                  </div>
+                );
+              })}
+
+            </div>
+
+          )}
+
+      </div>
 
     </div>
   );
