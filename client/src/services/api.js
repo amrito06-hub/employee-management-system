@@ -22,4 +22,29 @@ API.interceptors.request.use(
   }
 );
 
+// =========================
+// HANDLE INVALID / EXPIRED TOKEN
+// =========================
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const requestUrl = error.config?.url || "";
+
+    const isAuthRequest =
+      requestUrl.includes("/admin/login") ||
+      requestUrl.includes("/admin/register");
+
+    if (status === 401 && !isAuthRequest) {
+      localStorage.removeItem("token");
+
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export default API;
