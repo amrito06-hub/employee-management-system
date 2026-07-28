@@ -55,7 +55,7 @@ function Departments() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-6 md:p-8 text-slate-800 dark:text-white">
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 md:p-8 text-slate-800 dark:text-white">
 
       <div className="max-w-7xl mx-auto">
 

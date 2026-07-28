@@ -259,7 +259,7 @@ function EmployeeDetails() {
   // =========================
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-8 text-gray-900 dark:text-white">
+      <div className="min-h-screen w-full overflow-x-hidden bg-gray-100 dark:bg-gray-900 p-4 md:p-8 text-gray-900 dark:text-white">
 
         <div className="max-w-5xl mx-auto">
 
@@ -290,7 +290,7 @@ function EmployeeDetails() {
   // =========================
   if (!employee) {
     return (
-      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-8 text-gray-900 dark:text-white">
+      <div className="min-h-screen w-full overflow-x-hidden bg-gray-100 dark:bg-gray-900 p-4 md:p-8 text-gray-900 dark:text-white">
 
         <div className="max-w-5xl mx-auto">
 
@@ -331,7 +331,7 @@ function EmployeeDetails() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-4 md:p-8 text-gray-900 dark:text-white">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gray-100 dark:bg-gray-900 p-4 md:p-8 text-gray-900 dark:text-white">
 
       <div className="max-w-5xl mx-auto">
 

@@ -46,9 +46,6 @@ function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  // =========================
-  // DARK MODE
-  // =========================
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add("dark");
@@ -59,9 +56,6 @@ function Dashboard() {
     }
   }, [darkMode]);
 
-  // =========================
-  // LOAD ALL DASHBOARD DATA
-  // =========================
   useEffect(() => {
     loadDashboardData();
   }, []);
@@ -123,14 +117,12 @@ function Dashboard() {
 
       const paidPayrolls = payrolls.filter(
         (payroll) =>
-          String(payroll.paymentStatus).toLowerCase() ===
-          "paid"
+          String(payroll.paymentStatus).toLowerCase() === "paid"
       );
 
       const pendingPayrolls = payrolls.filter(
         (payroll) =>
-          String(payroll.paymentStatus).toLowerCase() ===
-          "pending"
+          String(payroll.paymentStatus).toLowerCase() === "pending"
       );
 
       const paidSalary = paidPayrolls.reduce(
@@ -167,9 +159,6 @@ function Dashboard() {
     }
   };
 
-  // =========================
-  // CHART DATA
-  // =========================
   const departmentChartData = departments.map(
     (department) => ({
       name: department.department || "Unknown",
@@ -202,13 +191,11 @@ function Dashboard() {
   const chartColors = ["#22c55e", "#f97316"];
 
   const formatCurrency = (amount) => {
-    return `₹${Number(amount || 0).toLocaleString(
-      "en-IN"
-    )}`;
+    return `₹${Number(amount || 0).toLocaleString("en-IN")}`;
   };
 
   const cardClass =
-    "bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-700";
+    "w-full min-w-0 max-w-full overflow-hidden bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700";
 
   const chartTooltipStyle = {
     backgroundColor: darkMode ? "#1e293b" : "#ffffff",
@@ -219,45 +206,40 @@ function Dashboard() {
     color: darkMode ? "#ffffff" : "#0f172a",
   };
 
-  // =========================
-  // LOADING STATE
-  // =========================
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-6 md:p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-100 dark:bg-slate-950 p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
 
-              <p className="text-slate-600 dark:text-slate-300">
-                Loading dashboard...
-              </p>
-            </div>
-          </div>
+          <p className="text-slate-600 dark:text-slate-300">
+            Loading dashboard...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen w-full min-w-0 overflow-x-hidden bg-slate-100 dark:bg-slate-950 p-3 sm:p-6 md:p-8">
+      <div className="w-full max-w-7xl mx-auto min-w-0">
 
         {/* HEADER */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5 mb-8">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white">
+
+          <div className="min-w-0">
+            <h1 className="text-3xl md:text-4xl font-bold text-slate-800 dark:text-white break-words">
               Dashboard
             </h1>
 
-            <p className="text-slate-500 dark:text-slate-400 mt-2">
+            <p className="text-slate-500 dark:text-slate-400 mt-2 break-words">
               Welcome back! Here's your employee overview.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="bg-white dark:bg-slate-800 px-5 py-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <div className="flex flex-col sm:flex-row gap-3 min-w-0">
+
+            <div className="bg-white dark:bg-slate-800 px-4 sm:px-5 py-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 min-w-0">
               <p className="text-sm text-slate-500 dark:text-slate-400">
                 Today
               </p>
@@ -270,48 +252,53 @@ function Dashboard() {
             <button
               onClick={() => loadDashboardData(true)}
               disabled={refreshing}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-5 py-3 rounded-xl font-semibold transition"
+              className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 sm:px-5 py-3 rounded-xl font-semibold transition whitespace-nowrap"
             >
               {refreshing
                 ? "🔄 Refreshing..."
                 : "🔄 Refresh Dashboard"}
             </button>
+
           </div>
         </div>
 
-        {/* ERROR MESSAGE */}
+        {/* ERROR */}
         {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4">
+          <div className="mb-6 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-xl p-4 overflow-hidden">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <p className="text-red-600 dark:text-red-300">
+
+              <p className="text-red-600 dark:text-red-300 break-words">
                 ⚠️ {error}
               </p>
 
               <button
                 onClick={() => loadDashboardData()}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg"
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg whitespace-nowrap"
               >
                 Retry
               </button>
+
             </div>
           </div>
         )}
 
         {/* MAIN STATISTICS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 min-w-0">
 
           <div className={cardClass}>
-            <div className="flex justify-between items-center">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
+            <div className="flex justify-between items-center gap-3">
+
+              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
                 👥
               </div>
 
-              <span className="text-green-500 text-sm font-semibold">
+              <span className="text-green-500 text-sm font-semibold truncate">
                 Overview
               </span>
+
             </div>
 
-            <p className="text-slate-500 dark:text-slate-400 mt-5">
+            <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
               Total Employees
             </p>
 
@@ -321,11 +308,11 @@ function Dashboard() {
           </div>
 
           <div className={cardClass}>
-            <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
               ✅
             </div>
 
-            <p className="text-slate-500 dark:text-slate-400 mt-5">
+            <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
               Active Employees
             </p>
 
@@ -335,11 +322,11 @@ function Dashboard() {
           </div>
 
           <div className={cardClass}>
-            <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-red-100 flex items-center justify-center text-2xl">
               ⚠️
             </div>
 
-            <p className="text-slate-500 dark:text-slate-400 mt-5">
+            <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
               Inactive Employees
             </p>
 
@@ -349,11 +336,11 @@ function Dashboard() {
           </div>
 
           <div className={cardClass}>
-            <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-purple-100 flex items-center justify-center text-2xl">
               💰
             </div>
 
-            <p className="text-slate-500 dark:text-slate-400 mt-5">
+            <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
               Total Salary
             </p>
 
@@ -363,11 +350,11 @@ function Dashboard() {
           </div>
 
           <div className={cardClass}>
-            <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">
               📈
             </div>
 
-            <p className="text-slate-500 dark:text-slate-400 mt-5">
+            <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
               Average Salary
             </p>
 
@@ -379,38 +366,39 @@ function Dashboard() {
         </div>
 
         {/* PAYROLL SUMMARY */}
-        <div className="mt-10">
-          <div className="flex items-center justify-between mb-5">
+        <div className="mt-10 min-w-0">
+
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">
               Payroll Summary
             </h2>
 
             <button
               onClick={() => navigate("/payroll")}
-              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-semibold"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-semibold self-start sm:self-auto"
             >
               View Payroll →
             </button>
+
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 min-w-0">
 
             <button
               onClick={() => navigate("/payroll")}
               className={`${cardClass} text-left hover:shadow-lg transition`}
             >
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
+              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
                 💵
               </div>
 
-              <p className="text-slate-500 dark:text-slate-400 mt-5">
+              <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
                 Total Payroll Amount
               </p>
 
               <h3 className="text-2xl font-bold text-blue-600 mt-2 break-words">
-                {formatCurrency(
-                  payrollSummary.totalPayrollAmount
-                )}
+                {formatCurrency(payrollSummary.totalPayrollAmount)}
               </h3>
             </button>
 
@@ -418,18 +406,16 @@ function Dashboard() {
               onClick={() => navigate("/payroll")}
               className={`${cardClass} text-left hover:shadow-lg transition`}
             >
-              <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
+              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
                 ✅
               </div>
 
-              <p className="text-slate-500 dark:text-slate-400 mt-5">
+              <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
                 Paid Salary
               </p>
 
               <h3 className="text-2xl font-bold text-green-600 mt-2 break-words">
-                {formatCurrency(
-                  payrollSummary.paidSalary
-                )}
+                {formatCurrency(payrollSummary.paidSalary)}
               </h3>
             </button>
 
@@ -437,18 +423,16 @@ function Dashboard() {
               onClick={() => navigate("/payroll")}
               className={`${cardClass} text-left hover:shadow-lg transition`}
             >
-              <div className="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">
+              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-orange-100 flex items-center justify-center text-2xl">
                 ⏳
               </div>
 
-              <p className="text-slate-500 dark:text-slate-400 mt-5">
+              <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
                 Pending Salary
               </p>
 
               <h3 className="text-2xl font-bold text-orange-500 mt-2 break-words">
-                {formatCurrency(
-                  payrollSummary.pendingSalary
-                )}
+                {formatCurrency(payrollSummary.pendingSalary)}
               </h3>
             </button>
 
@@ -456,11 +440,11 @@ function Dashboard() {
               onClick={() => navigate("/payroll")}
               className={`${cardClass} text-left hover:shadow-lg transition`}
             >
-              <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center text-2xl">
+              <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-purple-100 flex items-center justify-center text-2xl">
                 🧾
               </div>
 
-              <p className="text-slate-500 dark:text-slate-400 mt-5">
+              <p className="text-slate-500 dark:text-slate-400 mt-5 break-words">
                 Total Payroll Records
               </p>
 
@@ -473,16 +457,18 @@ function Dashboard() {
         </div>
 
         {/* CHARTS */}
-        <div className="mt-10">
+        <div className="mt-10 min-w-0">
+
           <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-5">
             Visual Analytics
           </h2>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 min-w-0">
 
             {/* DEPARTMENT CHART */}
             <div className={cardClass}>
-              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-5">
+
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-5 break-words">
                 Department-wise Employee Distribution
               </h3>
 
@@ -493,44 +479,48 @@ function Dashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="w-full h-72">
+                <div className="w-full min-w-0 h-72 overflow-hidden">
+
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={departmentChartData}>
+
+                    <BarChart
+                      data={departmentChartData}
+                      margin={{
+                        top: 20,
+                        right: 10,
+                        left: 0,
+                        bottom: 20,
+                      }}
+                    >
+
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke={
-                          darkMode
-                            ? "#475569"
-                            : "#e2e8f0"
-                        }
+                        stroke={darkMode ? "#475569" : "#e2e8f0"}
                       />
 
                       <XAxis
                         dataKey="name"
                         tick={{
-                          fill: darkMode
-                            ? "#cbd5e1"
-                            : "#475569",
+                          fill: darkMode ? "#cbd5e1" : "#475569",
+                          fontSize: 11,
                         }}
                         tickFormatter={(value) =>
-                          value.length > 12
-                            ? `${value.slice(0, 12)}...`
+                          value.length > 10
+                            ? `${value.slice(0, 10)}...`
                             : value
                         }
                       />
 
                       <YAxis
                         allowDecimals={false}
+                        width={35}
                         tick={{
-                          fill: darkMode
-                            ? "#cbd5e1"
-                            : "#475569",
+                          fill: darkMode ? "#cbd5e1" : "#475569",
+                          fontSize: 11,
                         }}
                       />
 
-                      <Tooltip
-                        contentStyle={chartTooltipStyle}
-                      />
+                      <Tooltip contentStyle={chartTooltipStyle} />
 
                       <Bar
                         dataKey="employees"
@@ -538,25 +528,32 @@ function Dashboard() {
                         fill="#3b82f6"
                         radius={[8, 8, 0, 0]}
                       />
+
                     </BarChart>
+
                   </ResponsiveContainer>
+
                 </div>
               )}
+
             </div>
 
             {/* SALARY CHART */}
             <div className={cardClass}>
+
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-5">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white">
+
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white break-words">
                   Paid Salary vs Pending Salary
                 </h3>
 
                 <button
                   onClick={() => navigate("/payroll")}
-                  className="text-blue-600 dark:text-blue-400 text-sm font-semibold"
+                  className="text-blue-600 dark:text-blue-400 text-sm font-semibold whitespace-nowrap"
                 >
                   Open Payroll →
                 </button>
+
               </div>
 
               {payrollSummary.totalRecords === 0 ? (
@@ -566,45 +563,52 @@ function Dashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="w-full h-72">
+                <div className="w-full min-w-0 h-72 overflow-hidden">
+
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={salaryChartData}>
+
+                    <BarChart
+                      data={salaryChartData}
+                      margin={{
+                        top: 20,
+                        right: 10,
+                        left: 0,
+                        bottom: 20,
+                      }}
+                    >
+
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke={
-                          darkMode
-                            ? "#475569"
-                            : "#e2e8f0"
-                        }
+                        stroke={darkMode ? "#475569" : "#e2e8f0"}
                       />
 
                       <XAxis
                         dataKey="name"
                         tick={{
-                          fill: darkMode
-                            ? "#cbd5e1"
-                            : "#475569",
+                          fill: darkMode ? "#cbd5e1" : "#475569",
+                          fontSize: 11,
                         }}
+                        tickFormatter={(value) =>
+                          value === "Paid Salary"
+                            ? "Paid"
+                            : "Pending"
+                        }
                       />
 
                       <YAxis
+                        width={70}
                         tick={{
-                          fill: darkMode
-                            ? "#cbd5e1"
-                            : "#475569",
+                          fill: darkMode ? "#cbd5e1" : "#475569",
+                          fontSize: 10,
                         }}
                         tickFormatter={(value) =>
-                          `₹${value.toLocaleString(
-                            "en-IN"
-                          )}`
+                          `₹${Number(value).toLocaleString("en-IN")}`
                         }
                       />
 
                       <Tooltip
                         contentStyle={chartTooltipStyle}
-                        formatter={(value) =>
-                          formatCurrency(value)
-                        }
+                        formatter={(value) => formatCurrency(value)}
                       />
 
                       <Legend />
@@ -615,14 +619,19 @@ function Dashboard() {
                         fill="#22c55e"
                         radius={[8, 8, 0, 0]}
                       />
+
                     </BarChart>
+
                   </ResponsiveContainer>
+
                 </div>
               )}
+
             </div>
 
             {/* PAYROLL STATUS CHART */}
             <div className={`${cardClass} xl:col-span-2`}>
+
               <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-5">
                 Payroll Records Status
               </h3>
@@ -634,46 +643,52 @@ function Dashboard() {
                   </p>
                 </div>
               ) : (
-                <div className="w-full h-80">
+                <div className="w-full min-w-0 h-80 overflow-hidden">
+
                   <ResponsiveContainer width="100%" height="100%">
+
                     <PieChart>
+
                       <Pie
                         data={payrollStatusData}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
                         cy="50%"
-                        outerRadius="70%"
+                        outerRadius="65%"
                         label
                       >
+
                         {payrollStatusData.map(
                           (entry, index) => (
                             <Cell
                               key={`cell-${index}`}
-                              fill={
-                                chartColors[index]
-                              }
+                              fill={chartColors[index]}
                             />
                           )
                         )}
+
                       </Pie>
 
-                      <Tooltip
-                        contentStyle={chartTooltipStyle}
-                      />
+                      <Tooltip contentStyle={chartTooltipStyle} />
 
                       <Legend />
+
                     </PieChart>
+
                   </ResponsiveContainer>
+
                 </div>
               )}
+
             </div>
 
           </div>
         </div>
 
         {/* DEPARTMENT STATISTICS */}
-        <div className="mt-10">
+        <div className="mt-10 min-w-0">
+
           <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-5">
             Department Statistics
           </h2>
@@ -685,13 +700,17 @@ function Dashboard() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 min-w-0">
+
               {departments.map((department) => (
+
                 <div
                   key={department.department}
                   className={`${cardClass} overflow-hidden`}
                 >
-                  <div className="flex items-start justify-between gap-3">
+
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+
                     <h3 className="font-semibold text-slate-800 dark:text-white break-words min-w-0">
                       {department.department}
                     </h3>
@@ -699,6 +718,7 @@ function Dashboard() {
                     <span className="text-2xl flex-shrink-0">
                       👥
                     </span>
+
                   </div>
 
                   <p className="text-3xl font-bold text-blue-600 mt-4">
@@ -708,28 +728,36 @@ function Dashboard() {
                   <p className="text-sm text-slate-500 dark:text-slate-400">
                     Employees
                   </p>
+
                 </div>
+
               ))}
+
             </div>
           )}
+
         </div>
 
         {/* RECENT EMPLOYEES */}
-        <div className="mt-10">
+        <div className="mt-10 min-w-0">
+
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+
             <h2 className="text-xl font-bold text-slate-800 dark:text-white">
               Recent Employees
             </h2>
 
             <button
               onClick={() => navigate("/employees")}
-              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-semibold"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 font-semibold self-start sm:self-auto"
             >
               View All →
             </button>
+
           </div>
 
           <div className={`${cardClass} overflow-hidden p-0`}>
+
             {recentEmployees.length === 0 ? (
               <div className="p-6">
                 <p className="text-slate-500 dark:text-slate-400">
@@ -737,10 +765,14 @@ function Dashboard() {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="w-full overflow-x-auto">
+
                 <table className="w-full min-w-[700px]">
+
                   <thead className="bg-slate-100 dark:bg-slate-700">
+
                     <tr>
+
                       <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700 dark:text-white">
                         Employee ID
                       </th>
@@ -760,20 +792,23 @@ function Dashboard() {
                       <th className="text-left px-6 py-4 text-sm font-semibold text-slate-700 dark:text-white">
                         Salary
                       </th>
+
                     </tr>
+
                   </thead>
 
                   <tbody>
+
                     {recentEmployees.map((employee) => (
+
                       <tr
                         key={employee._id}
                         onClick={() =>
-                          navigate(
-                            `/employees/${employee._id}`
-                          )
+                          navigate(`/employees/${employee._id}`)
                         }
                         className="border-t border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition"
                       >
+
                         <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
                           {employee.employeeId}
                         </td>
@@ -793,71 +828,90 @@ function Dashboard() {
                         <td className="px-6 py-4 font-semibold text-green-600">
                           {formatCurrency(employee.salary)}
                         </td>
+
                       </tr>
+
                     ))}
+
                   </tbody>
+
                 </table>
+
               </div>
             )}
+
           </div>
+
         </div>
 
         {/* QUICK ACTIONS */}
-        <div className="mt-10 pb-8">
+        <div className="mt-10 pb-8 min-w-0">
+
           <h2 className="text-xl font-bold text-slate-800 dark:text-white mb-5">
             Quick Actions
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 min-w-0">
 
             <button
               onClick={() => navigate("/employees")}
               className={`${cardClass} text-left hover:shadow-lg transition`}
             >
-              <span className="text-3xl">👥</span>
 
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white mt-3">
+              <span className="text-3xl">
+                👥
+              </span>
+
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white mt-3 break-words">
                 Manage Employees
               </h3>
 
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 break-words">
                 Add, edit and manage employees
               </p>
+
             </button>
 
             <button
               onClick={() => navigate("/departments")}
               className={`${cardClass} text-left hover:shadow-lg transition`}
             >
-              <span className="text-3xl">🏢</span>
 
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white mt-3">
+              <span className="text-3xl">
+                🏢
+              </span>
+
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white mt-3 break-words">
                 View Departments
               </h3>
 
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 break-words">
                 Check department-wise employees
               </p>
+
             </button>
 
             <button
               onClick={() => setDarkMode(!darkMode)}
               className={`${cardClass} text-left hover:shadow-lg transition`}
             >
+
               <span className="text-3xl">
                 {darkMode ? "☀️" : "🌙"}
               </span>
 
-              <h3 className="font-bold text-lg text-slate-800 dark:text-white mt-3">
+              <h3 className="font-bold text-lg text-slate-800 dark:text-white mt-3 break-words">
                 Change Theme
               </h3>
 
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+              <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 break-words">
                 Switch between light and dark mode
               </p>
+
             </button>
 
           </div>
+
         </div>
 
       </div>

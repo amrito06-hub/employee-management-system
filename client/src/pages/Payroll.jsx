@@ -168,16 +168,59 @@ function Payroll() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    const basic = Number(formData.basicSalary);
+    const allow = Number(formData.allowance || 0);
+    const bon = Number(formData.bonus || 0);
+    const ded = Number(formData.deduction || 0);
+
+    if (!formData.employee || !formData.month) {
+      alert("Please select an employee and a month");
+      return;
+    }
+
+    if (
+      [basic, allow, bon, ded].some(
+        (value) => Number.isNaN(value) || value < 0
+      )
+    ) {
+      alert("Salary values must be valid, non-negative numbers");
+      return;
+    }
+
+    if (basic <= 0) {
+      alert("Basic salary must be greater than 0");
+      return;
+    }
+
+    if (basic + allow + bon - ded < 0) {
+      alert("Deductions cannot exceed total earnings");
+      return;
+    }
+
+    const isDuplicate = payrolls.some(
+      (payroll) =>
+        (payroll.employee?._id || payroll.employee) ===
+          formData.employee &&
+        payroll.month === formData.month
+    );
+
+    if (isDuplicate) {
+      alert(
+        "Payroll for this employee and month already exists"
+      );
+      return;
+    }
+
     try {
       setSaving(true);
 
       const payrollData = {
         employee: formData.employee,
         month: formData.month,
-        basicSalary: Number(formData.basicSalary),
-        allowance: Number(formData.allowance || 0),
-        bonus: Number(formData.bonus || 0),
-        deduction: Number(formData.deduction || 0),
+        basicSalary: basic,
+        allowance: allow,
+        bonus: bon,
+        deduction: ded,
       };
 
       const response = await API.post(
@@ -334,7 +377,7 @@ function Payroll() {
   ).length;
 
   return (
-    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 text-slate-900 dark:text-white">
+    <div className="min-h-screen w-full overflow-x-hidden bg-slate-100 dark:bg-slate-950 p-4 sm:p-6 lg:p-8 text-slate-900 dark:text-white">
 
       <div className="max-w-7xl mx-auto">
 

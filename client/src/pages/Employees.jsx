@@ -131,7 +131,9 @@ function Employees() {
       }
 
       const response = await API.get(
-        `/employees/search?name=${searchTerm}`
+        `/employees/search?name=${encodeURIComponent(
+          searchTerm.trim()
+        )}`
       );
 
       setEmployees(response.data.employees || []);
@@ -290,7 +292,7 @@ function Employees() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 p-6 text-gray-900 dark:text-white">
+    <div className="min-h-screen w-full overflow-x-hidden bg-gray-100 dark:bg-gray-900 p-4 sm:p-6 text-gray-900 dark:text-white">
 
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">

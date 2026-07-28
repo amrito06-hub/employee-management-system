@@ -9,13 +9,45 @@
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: #f5f7fb;
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
 }
 
 .dark body {
   background: #111827;
   color: white;
+}
+
+/* Prevent content from touching screen edges on small screens */
+@media (max-width: 640px) {
+  body {
+    width: 100%;
+    overflow-x: hidden;
+  }
+
+  #root {
+    width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+/* Responsive table scrolling */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive table {
+  min-width: 650px;
 }

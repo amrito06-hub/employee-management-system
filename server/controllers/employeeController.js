@@ -21,7 +21,7 @@ const addEmployee = async (req, res) => {
 // Get All Employees
 const getEmployees = async (req, res) => {
   try {
-    const employees = await Employee.find();
+    const employees = await Employee.find().sort({ empId: 1 });
 
     res.status(200).json({
       success: true,
@@ -71,7 +71,7 @@ const searchEmployee = async (req, res) => {
         $regex: keyword,
         $options: "i",
       },
-    });
+    }).sort({ empId: 1 });
 
     res.status(200).json({
       success: true,
