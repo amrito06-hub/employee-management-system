@@ -8,6 +8,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
 const payrollRoutes = require("./routes/payrollRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const attendanceRoutes = require("./routes/attendanceRoutes");
 
 const app = express();
 
@@ -57,6 +58,11 @@ app.use(
 app.use(
   "/api/dashboard",
   dashboardRoutes
+);
+// Attendance Routes
+app.use(
+  "/api/attendance",
+  attendanceRoutes
 );
 
 // Start Server

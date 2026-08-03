@@ -27,6 +27,11 @@ function Sidebar() {
       icon: "🏢",
     },
     {
+      name: "Attendance",
+      path: "/attendance",
+      icon: "📅",
+    },
+    {
       name: "Payroll & Salary",
       path: "/payroll",
       icon: "💰",

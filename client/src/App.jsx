@@ -6,6 +6,7 @@ import Employees from "./pages/Employees";
 import EmployeeDetails from "./pages/EmployeeDetails";
 import Departments from "./pages/Departments";
 import Payroll from "./pages/Payroll";
+import Attendance from "./pages/Attendance";
 
 import MainLayout from "./layouts/MainLayout";
 
@@ -14,7 +15,6 @@ function App() {
 
   return (
     <Routes>
-
       {/* DEFAULT */}
       <Route
         path="/"
@@ -32,7 +32,6 @@ function App() {
 
       {/* Main Application Layout (Sidebar wrapped) */}
       <Route element={<MainLayout />}>
-
         {/* DASHBOARD */}
         <Route path="/dashboard" element={<Dashboard />} />
 
@@ -50,9 +49,17 @@ function App() {
           element={<Departments />}
         />
 
-        {/* PAYROLL */}
-        <Route path="/payroll" element={<Payroll />} />
+        {/* ATTENDANCE */}
+        <Route
+          path="/attendance"
+          element={<Attendance />}
+        />
 
+        {/* PAYROLL */}
+        <Route
+          path="/payroll"
+          element={<Payroll />}
+        />
       </Route>
 
       {/* INVALID ROUTE */}
@@ -60,7 +67,6 @@ function App() {
         path="*"
         element={<Navigate to="/" replace />}
       />
-
     </Routes>
   );
 }
