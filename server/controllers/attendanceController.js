@@ -1,5 +1,5 @@
-const Attendance = require("../models/attendance");
-const Employee = require("../models/employee");
+const Attendance = require("../models/Attendance");
+const Employee = require("../models/Employee");
 
 // Helper: strip time so date comparisons are consistent (one record per day)
 const normalizeDate = (dateInput) => {
