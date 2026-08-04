@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://employee-management-system-sfzi.onrender.com",
+  baseURL: "https://employee-management-system-sfzi.onrender.com/api",
 });
 
 // =========================
