@@ -20,7 +20,9 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:5174",
+      "https://employee-management-system-1-flu7.onrender.com",
     ],
+    credentials: true,
   })
 );
 
