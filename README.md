@@ -42,6 +42,11 @@ A full-stack Employee Management System built using React, Node.js, Express.js, 
 - bcryptjs
 - dotenv
 
+- render
+- mongo DB
+- pOSTMAN
+- LOcaL Host
+
 ## Project Structure
 
 ```text
